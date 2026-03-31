@@ -7,8 +7,8 @@
 // which SPM's -I flag alone can no longer resolve. This fork flattens the headers
 // so that -I Headers/ finds the modulemap directly.
 import PackageDescription
-let checksum = "92370f71e4328b657474ccc6c1e39d0d01f9de1376a3e21bd92732ff7ee5d0ea"
-let version = "26.01.04-fixed"
+let checksum = "e5d4ee3e342cd08dfa38c8712a1020d627873134133738533980b7fc38051619"
+let version = "xcode-26-4"
 let url = "https://github.com/lucasfeijo/matrix-rust-components-swift/releases/download/\(version)/MatrixSDKFFI.xcframework.zip"
 let package = Package(
     name: "MatrixRustSDK",

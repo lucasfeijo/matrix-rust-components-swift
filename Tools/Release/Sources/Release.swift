@@ -21,8 +21,8 @@ struct Release: AsyncParsableCommand {
         .authorization(for: URL(string: "https://api.github.com")!)!
         .password
     
-    var sourceRepo = Repository(owner: "matrix-org", name: "matrix-rust-sdk")
-    var packageRepo = Repository(owner: "matrix-org", name: "matrix-rust-components-swift")
+    var sourceRepo = Repository(owner: "lucasfeijo", name: "matrix-rust-sdk")
+    var packageRepo = Repository(owner: "lucasfeijo", name: "matrix-rust-components-swift")
     
     var packageDirectory = URL(fileURLWithPath: #file)
         .deletingLastPathComponent() // Release.swift

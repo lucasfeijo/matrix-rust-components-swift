@@ -7987,6 +7987,14 @@ public protocol RoomProtocol: AnyObject, Sendable {
     func getRoomVisibility() async throws  -> RoomVisibility
     
     /**
+     * Get a specific state event in this room, from the local store.
+     *
+     * It will be returned as a raw JSON string, or `None` if no such
+     * state event exists.
+     */
+    func getStateEvent(eventType: String, stateKey: String) async throws  -> String?
+    
+    /**
      * Is there a non expired membership with application "m.call" and scope
      * "m.room" in this room.
      */
@@ -8893,6 +8901,29 @@ open func getRoomVisibility()async throws  -> RoomVisibility  {
             completeFunc: ffi_matrix_sdk_ffi_rust_future_complete_rust_buffer,
             freeFunc: ffi_matrix_sdk_ffi_rust_future_free_rust_buffer,
             liftFunc: FfiConverterTypeRoomVisibility_lift,
+            errorHandler: FfiConverterTypeClientError_lift
+        )
+}
+    
+    /**
+     * Get a specific state event in this room, from the local store.
+     *
+     * It will be returned as a raw JSON string, or `None` if no such
+     * state event exists.
+     */
+open func getStateEvent(eventType: String, stateKey: String)async throws  -> String?  {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_matrix_sdk_ffi_fn_method_room_get_state_event(
+                    self.uniffiCloneHandle(),
+                    FfiConverterString.lower(eventType),FfiConverterString.lower(stateKey)
+                )
+            },
+            pollFunc: ffi_matrix_sdk_ffi_rust_future_poll_rust_buffer,
+            completeFunc: ffi_matrix_sdk_ffi_rust_future_complete_rust_buffer,
+            freeFunc: ffi_matrix_sdk_ffi_rust_future_free_rust_buffer,
+            liftFunc: FfiConverterOptionString.lift,
             errorHandler: FfiConverterTypeClientError_lift
         )
 }
@@ -51170,6 +51201,9 @@ private let initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_matrix_sdk_ffi_checksum_method_room_get_room_visibility() != 49289) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_matrix_sdk_ffi_checksum_method_room_get_state_event() != 35389) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_matrix_sdk_ffi_checksum_method_room_has_active_room_call() != 1287) {

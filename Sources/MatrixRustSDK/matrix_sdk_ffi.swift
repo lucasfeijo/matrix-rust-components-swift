@@ -4058,6 +4058,22 @@ public protocol EncryptionProtocol: AnyObject, Sendable {
      */
     func hasDevicesToVerifyAgainst() async throws  -> Bool
     
+    /**
+     * This method will import all the private cross-signing keys and
+     * the private part of a backup key and its accompanying version into the
+     * store.
+     *
+     * Importing all the secrets will mark the device as verified and enable
+     * backups.
+     *
+     * **Warning**: Only import this from a trusted source, i.e. if an existing
+     * device is sharing this with a new device.
+     *
+     * **Warning*: Only call this method right after logging in and before the
+     * initial sync has been started.
+     */
+    func importSecretsBundle(secretsBundle: SecretsBundleWithUserId) async throws 
+    
     func isLastDevice() async throws  -> Bool
     
     /**
@@ -4340,6 +4356,37 @@ open func hasDevicesToVerifyAgainst()async throws  -> Bool  {
             completeFunc: ffi_matrix_sdk_ffi_rust_future_complete_i8,
             freeFunc: ffi_matrix_sdk_ffi_rust_future_free_i8,
             liftFunc: FfiConverterBool.lift,
+            errorHandler: FfiConverterTypeClientError_lift
+        )
+}
+    
+    /**
+     * This method will import all the private cross-signing keys and
+     * the private part of a backup key and its accompanying version into the
+     * store.
+     *
+     * Importing all the secrets will mark the device as verified and enable
+     * backups.
+     *
+     * **Warning**: Only import this from a trusted source, i.e. if an existing
+     * device is sharing this with a new device.
+     *
+     * **Warning*: Only call this method right after logging in and before the
+     * initial sync has been started.
+     */
+open func importSecretsBundle(secretsBundle: SecretsBundleWithUserId)async throws   {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_matrix_sdk_ffi_fn_method_encryption_import_secrets_bundle(
+                    self.uniffiCloneHandle(),
+                    FfiConverterTypeSecretsBundleWithUserId_lower(secretsBundle)
+                )
+            },
+            pollFunc: ffi_matrix_sdk_ffi_rust_future_poll_void,
+            completeFunc: ffi_matrix_sdk_ffi_rust_future_complete_void,
+            freeFunc: ffi_matrix_sdk_ffi_rust_future_free_void,
+            liftFunc: { $0 },
             errorHandler: FfiConverterTypeClientError_lift
         )
 }
@@ -12362,6 +12409,183 @@ public func FfiConverterTypeRoomPreview_lift(_ handle: UInt64) throws -> RoomPre
 #endif
 public func FfiConverterTypeRoomPreview_lower(_ value: RoomPreview) -> UInt64 {
     return FfiConverterTypeRoomPreview.lower(value)
+}
+
+
+
+
+
+
+/**
+ * Struct containing the bundle of secrets to fully activate a new device for
+ * end-to-end encryption.
+ */
+public protocol SecretsBundleWithUserIdProtocol: AnyObject, Sendable {
+    
+    /**
+     * Does the bundle contain a backup key.
+     *
+     * Since enabling a backup is optional, the backup key might be missing
+     * from the bundle. Returns `false` if the backup key is missing,
+     * otherwise `true`.
+     */
+    func containsBackupKey()  -> Bool
+    
+}
+/**
+ * Struct containing the bundle of secrets to fully activate a new device for
+ * end-to-end encryption.
+ */
+open class SecretsBundleWithUserId: SecretsBundleWithUserIdProtocol, @unchecked Sendable {
+    fileprivate let handle: UInt64
+
+    /// Used to instantiate a [FFIObject] without an actual handle, for fakes in tests, mostly.
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    public struct NoHandle {
+        public init() {}
+    }
+
+    // TODO: We'd like this to be `private` but for Swifty reasons,
+    // we can't implement `FfiConverter` without making this `required` and we can't
+    // make it `required` without making it `public`.
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    required public init(unsafeFromHandle handle: UInt64) {
+        self.handle = handle
+    }
+
+    // This constructor can be used to instantiate a fake object.
+    // - Parameter noHandle: Placeholder value so we can have a constructor separate from the default empty one that may be implemented for classes extending [FFIObject].
+    //
+    // - Warning:
+    //     Any object instantiated with this constructor cannot be passed to an actual Rust-backed object. Since there isn't a backing handle the FFI lower functions will crash.
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    public init(noHandle: NoHandle) {
+        self.handle = 0
+    }
+
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    public func uniffiCloneHandle() -> UInt64 {
+        return try! rustCall { uniffi_matrix_sdk_ffi_fn_clone_secretsbundlewithuserid(self.handle, $0) }
+    }
+    // No primary constructor declared for this class.
+
+    deinit {
+        if handle == 0 {
+            // Mock objects have handle=0 don't try to free them
+            return
+        }
+
+        try! rustCall { uniffi_matrix_sdk_ffi_fn_free_secretsbundlewithuserid(handle, $0) }
+    }
+
+    
+    /**
+     * Attempt to export a [`SecretsBundle`] from a crypto store.
+     *
+     * This method can be used to retrieve a [`SecretsBundle`] from an existing
+     * `matrix-sdk`-based client in order to import the [`SecretsBundle`] in
+     * another [`Client`] instance.
+     *
+     * This can be useful for migration purposes or to allow existing client
+     * instances create new ones that will be fully verified.
+     */
+public static func fromDatabase(databasePath: String, passphrase: String?, backupInfo: String)async throws  -> SecretsBundleWithUserId  {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_matrix_sdk_ffi_fn_constructor_secretsbundlewithuserid_from_database(FfiConverterString.lower(databasePath),FfiConverterOptionString.lower(passphrase),FfiConverterString.lower(backupInfo)
+                )
+            },
+            pollFunc: ffi_matrix_sdk_ffi_rust_future_poll_u64,
+            completeFunc: ffi_matrix_sdk_ffi_rust_future_complete_u64,
+            freeFunc: ffi_matrix_sdk_ffi_rust_future_free_u64,
+            liftFunc: FfiConverterTypeSecretsBundleWithUserId_lift,
+            errorHandler: FfiConverterTypeBundleExportError_lift
+        )
+}
+    
+    /**
+     * Attempt to create a [`SecretsBundle`] from a previously JSON serialized
+     * bundle.
+     */
+public static func fromStr(userId: String, bundle: String, backupInfo: String)throws  -> SecretsBundleWithUserId  {
+    return try  FfiConverterTypeSecretsBundleWithUserId_lift(try rustCallWithError(FfiConverterTypeBundleExportError_lift) {
+    uniffi_matrix_sdk_ffi_fn_constructor_secretsbundlewithuserid_from_str(
+        FfiConverterString.lower(userId),
+        FfiConverterString.lower(bundle),
+        FfiConverterString.lower(backupInfo),$0
+    )
+})
+}
+    
+
+    
+    /**
+     * Does the bundle contain a backup key.
+     *
+     * Since enabling a backup is optional, the backup key might be missing
+     * from the bundle. Returns `false` if the backup key is missing,
+     * otherwise `true`.
+     */
+open func containsBackupKey() -> Bool  {
+    return try!  FfiConverterBool.lift(try! rustCall() {
+    uniffi_matrix_sdk_ffi_fn_method_secretsbundlewithuserid_contains_backup_key(
+            self.uniffiCloneHandle(),$0
+    )
+})
+}
+    
+
+    
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeSecretsBundleWithUserId: FfiConverter {
+    typealias FfiType = UInt64
+    typealias SwiftType = SecretsBundleWithUserId
+
+    public static func lift(_ handle: UInt64) throws -> SecretsBundleWithUserId {
+        return SecretsBundleWithUserId(unsafeFromHandle: handle)
+    }
+
+    public static func lower(_ value: SecretsBundleWithUserId) -> UInt64 {
+        return value.uniffiCloneHandle()
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SecretsBundleWithUserId {
+        let handle: UInt64 = try readInt(&buf)
+        return try lift(handle)
+    }
+
+    public static func write(_ value: SecretsBundleWithUserId, into buf: inout [UInt8]) {
+        writeInt(&buf, lower(value))
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeSecretsBundleWithUserId_lift(_ handle: UInt64) throws -> SecretsBundleWithUserId {
+    return try FfiConverterTypeSecretsBundleWithUserId.lift(handle)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeSecretsBundleWithUserId_lower(_ value: SecretsBundleWithUserId) -> UInt64 {
+    return FfiConverterTypeSecretsBundleWithUserId.lower(value)
 }
 
 
@@ -27178,6 +27402,148 @@ public func FfiConverterTypeBatchNotificationResult_lower(_ value: BatchNotifica
 
 
 
+/**
+ * Error type describing failures that can happen while exporting a
+ * [`SecretsBundle`] from a SQLite store.
+ */
+public enum BundleExportError: Swift.Error, Equatable, Hashable, Foundation.LocalizedError {
+
+    
+    
+    /**
+     * The SQLite store couldn't be opened.
+     */
+    case OpenStoreError(msg: String
+    )
+    /**
+     * Data from the SQLite store couldn't be exported.
+     */
+    case StoreError(msg: String
+    )
+    /**
+     * The store doesn't contain a secrets bundle or it couldn't be read from
+     * the store.
+     */
+    case SecretError(msg: String
+    )
+    /**
+     * The store is empty and doesn't contain a secrets bundle.
+     */
+    case StoreEmpty
+    /**
+     * A JSON object couldn't be deserialized while the secrets bundle was
+     * exported.
+     */
+    case Json(msg: String
+    )
+    /**
+     * Error returned when the secrets bundle is missing a backup key or
+     * includes one that doesn’t match the key configured for the active backup
+     * version.
+     */
+    case InvalidBackup
+
+    
+
+    
+
+    
+    public var errorDescription: String? {
+        String(reflecting: self)
+    }
+    
+}
+
+#if compiler(>=6)
+extension BundleExportError: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeBundleExportError: FfiConverterRustBuffer {
+    typealias SwiftType = BundleExportError
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> BundleExportError {
+        let variant: Int32 = try readInt(&buf)
+        switch variant {
+
+        
+
+        
+        case 1: return .OpenStoreError(
+            msg: try FfiConverterString.read(from: &buf)
+            )
+        case 2: return .StoreError(
+            msg: try FfiConverterString.read(from: &buf)
+            )
+        case 3: return .SecretError(
+            msg: try FfiConverterString.read(from: &buf)
+            )
+        case 4: return .StoreEmpty
+        case 5: return .Json(
+            msg: try FfiConverterString.read(from: &buf)
+            )
+        case 6: return .InvalidBackup
+
+         default: throw UniffiInternalError.unexpectedEnumCase
+        }
+    }
+
+    public static func write(_ value: BundleExportError, into buf: inout [UInt8]) {
+        switch value {
+
+        
+
+        
+        
+        case let .OpenStoreError(msg):
+            writeInt(&buf, Int32(1))
+            FfiConverterString.write(msg, into: &buf)
+            
+        
+        case let .StoreError(msg):
+            writeInt(&buf, Int32(2))
+            FfiConverterString.write(msg, into: &buf)
+            
+        
+        case let .SecretError(msg):
+            writeInt(&buf, Int32(3))
+            FfiConverterString.write(msg, into: &buf)
+            
+        
+        case .StoreEmpty:
+            writeInt(&buf, Int32(4))
+        
+        
+        case let .Json(msg):
+            writeInt(&buf, Int32(5))
+            FfiConverterString.write(msg, into: &buf)
+            
+        
+        case .InvalidBackup:
+            writeInt(&buf, Int32(6))
+        
+        }
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeBundleExportError_lift(_ buf: RustBuffer) throws -> BundleExportError {
+    return try FfiConverterTypeBundleExportError.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeBundleExportError_lower(_ value: BundleExportError) -> RustBuffer {
+    return FfiConverterTypeBundleExportError.lower(value)
+}
+
+
 public enum ClientBuildError: Swift.Error, Equatable, Hashable, Foundation.LocalizedError {
 
     
@@ -27832,6 +28198,103 @@ public func FfiConverterTypeDateDividerMode_lift(_ buf: RustBuffer) throws -> Da
 #endif
 public func FfiConverterTypeDateDividerMode_lower(_ value: DateDividerMode) -> RustBuffer {
     return FfiConverterTypeDateDividerMode.lower(value)
+}
+
+
+// Note that we don't yet support `indirect` for enums.
+// See https://github.com/mozilla/uniffi-rs/issues/396 for further discussion.
+/**
+ * Result for the check if a store has a valid secrets bundle.
+ */
+
+public enum DetectedSecretsBundle: Equatable, Hashable {
+    
+    /**
+     * The store doesn't contain a secrets bundle at all.
+     */
+    case none
+    /**
+     * The store contains a bundle without a backup.
+     */
+    case withoutBackup
+    /**
+     * The store contains a bundle with an unused backup, the backup key in the
+     * bundle isn't used on the homeserver.
+     */
+    case unusedBackup
+    /**
+     * The store contains a complete secrets bundle.
+     */
+    case complete
+
+
+
+
+
+}
+
+#if compiler(>=6)
+extension DetectedSecretsBundle: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeDetectedSecretsBundle: FfiConverterRustBuffer {
+    typealias SwiftType = DetectedSecretsBundle
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> DetectedSecretsBundle {
+        let variant: Int32 = try readInt(&buf)
+        switch variant {
+        
+        case 1: return .none
+        
+        case 2: return .withoutBackup
+        
+        case 3: return .unusedBackup
+        
+        case 4: return .complete
+        
+        default: throw UniffiInternalError.unexpectedEnumCase
+        }
+    }
+
+    public static func write(_ value: DetectedSecretsBundle, into buf: inout [UInt8]) {
+        switch value {
+        
+        
+        case .none:
+            writeInt(&buf, Int32(1))
+        
+        
+        case .withoutBackup:
+            writeInt(&buf, Int32(2))
+        
+        
+        case .unusedBackup:
+            writeInt(&buf, Int32(3))
+        
+        
+        case .complete:
+            writeInt(&buf, Int32(4))
+        
+        }
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeDetectedSecretsBundle_lift(_ buf: RustBuffer) throws -> DetectedSecretsBundle {
+    return try FfiConverterTypeDetectedSecretsBundle.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeDetectedSecretsBundle_lower(_ value: DetectedSecretsBundle) -> RustBuffer {
+    return FfiConverterTypeDetectedSecretsBundle.lower(value)
 }
 
 
@@ -50103,6 +50566,34 @@ public func genTransactionId() -> String  {
 })
 }
 /**
+ * Check if a crypto store contains a valid [`SecretsBundle`].
+ */
+public func databaseContainsSecretsBundle(databasePath: String, passphrase: String?, backupInfo: String?)async throws  -> DetectedSecretsBundle  {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_matrix_sdk_ffi_fn_func_database_contains_secrets_bundle(FfiConverterString.lower(databasePath),FfiConverterOptionString.lower(passphrase),FfiConverterOptionString.lower(backupInfo)
+                )
+            },
+            pollFunc: ffi_matrix_sdk_ffi_rust_future_poll_rust_buffer,
+            completeFunc: ffi_matrix_sdk_ffi_rust_future_complete_rust_buffer,
+            freeFunc: ffi_matrix_sdk_ffi_rust_future_free_rust_buffer,
+            liftFunc: FfiConverterTypeDetectedSecretsBundle_lift,
+            errorHandler: FfiConverterTypeBundleExportError_lift
+        )
+}
+/**
+ * Check if a JSON encoded string contains a valid [`SecretsBundle`].
+ */
+public func jsonStringContainsSecretsBundle(bundle: String, backupInfo: String?)throws  -> DetectedSecretsBundle  {
+    return try  FfiConverterTypeDetectedSecretsBundle_lift(try rustCallWithError(FfiConverterTypeClientError_lift) {
+    uniffi_matrix_sdk_ffi_fn_func_json_string_contains_secrets_bundle(
+        FfiConverterString.lower(bundle),
+        FfiConverterOptionString.lower(backupInfo),$0
+    )
+})
+}
+/**
  * Set the global enablement level for the Sentry layer (after the logs have
  * been set up).
  */
@@ -50403,6 +50894,12 @@ private let initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_matrix_sdk_ffi_checksum_func_gen_transaction_id() != 50486) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_matrix_sdk_ffi_checksum_func_database_contains_secrets_bundle() != 57434) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_matrix_sdk_ffi_checksum_func_json_string_contains_secrets_bundle() != 52137) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_matrix_sdk_ffi_checksum_func_enable_sentry_logging() != 7613) {
@@ -50936,6 +51433,9 @@ private let initializationResult: InitializationResult = {
     if (uniffi_matrix_sdk_ffi_checksum_method_encryption_has_devices_to_verify_against() != 50754) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_matrix_sdk_ffi_checksum_method_encryption_import_secrets_bundle() != 9110) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_matrix_sdk_ffi_checksum_method_encryption_is_last_device() != 54322) {
         return InitializationResult.apiChecksumMismatch
     }
@@ -50982,6 +51482,9 @@ private let initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_matrix_sdk_ffi_checksum_method_identityresethandle_reset() != 29457) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_matrix_sdk_ffi_checksum_method_secretsbundlewithuserid_contains_backup_key() != 61271) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_matrix_sdk_ffi_checksum_method_useridentity_has_verification_violation() != 36877) {
@@ -51918,6 +52421,12 @@ private let initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_matrix_sdk_ffi_checksum_constructor_clientbuilder_new() != 40475) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_matrix_sdk_ffi_checksum_constructor_secretsbundlewithuserid_from_database() != 15629) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_matrix_sdk_ffi_checksum_constructor_secretsbundlewithuserid_from_str() != 28891) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_matrix_sdk_ffi_checksum_constructor_span_current() != 3197) {

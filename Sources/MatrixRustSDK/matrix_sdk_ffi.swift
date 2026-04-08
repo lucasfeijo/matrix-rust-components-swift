@@ -15100,6 +15100,15 @@ public protocol SyncServiceBuilderProtocol: AnyObject, Sendable {
      */
     func withOfflineMode()  -> SyncServiceBuilder
     
+    /**
+     * Request additional state events during sliding sync.
+     *
+     * These entries are merged with the built-in defaults; they do not
+     * replace them. Use the special state key `"*"` to request all state
+     * keys for a given event type.
+     */
+    func withRequiredState(requiredState: [RequiredState])  -> SyncServiceBuilder
+    
     func withSharePos(enable: Bool)  -> SyncServiceBuilder
     
 }
@@ -15180,6 +15189,22 @@ open func withOfflineMode() -> SyncServiceBuilder  {
     return try!  FfiConverterTypeSyncServiceBuilder_lift(try! rustCall() {
     uniffi_matrix_sdk_ffi_fn_method_syncservicebuilder_with_offline_mode(
             self.uniffiCloneHandle(),$0
+    )
+})
+}
+    
+    /**
+     * Request additional state events during sliding sync.
+     *
+     * These entries are merged with the built-in defaults; they do not
+     * replace them. Use the special state key `"*"` to request all state
+     * keys for a given event type.
+     */
+open func withRequiredState(requiredState: [RequiredState]) -> SyncServiceBuilder  {
+    return try!  FfiConverterTypeSyncServiceBuilder_lift(try! rustCall() {
+    uniffi_matrix_sdk_ffi_fn_method_syncservicebuilder_with_required_state(
+            self.uniffiCloneHandle(),
+        FfiConverterSequenceTypeRequiredState.lower(requiredState),$0
     )
 })
 }
@@ -22139,6 +22164,63 @@ public func FfiConverterTypeRequestConfig_lift(_ buf: RustBuffer) throws -> Requ
 #endif
 public func FfiConverterTypeRequestConfig_lower(_ value: RequestConfig) -> RustBuffer {
     return FfiConverterTypeRequestConfig.lower(value)
+}
+
+
+/**
+ * A state event type and state key pair to request during sliding sync.
+ */
+public struct RequiredState: Equatable, Hashable {
+    public var eventType: StateEventType
+    public var stateKey: String
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(eventType: StateEventType, stateKey: String) {
+        self.eventType = eventType
+        self.stateKey = stateKey
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension RequiredState: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeRequiredState: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> RequiredState {
+        return
+            try RequiredState(
+                eventType: FfiConverterTypeStateEventType.read(from: &buf), 
+                stateKey: FfiConverterString.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: RequiredState, into buf: inout [UInt8]) {
+        FfiConverterTypeStateEventType.write(value.eventType, into: &buf)
+        FfiConverterString.write(value.stateKey, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeRequiredState_lift(_ buf: RustBuffer) throws -> RequiredState {
+    return try FfiConverterTypeRequiredState.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeRequiredState_lower(_ value: RequiredState) -> RustBuffer {
+    return FfiConverterTypeRequiredState.lower(value)
 }
 
 
@@ -49481,6 +49563,31 @@ fileprivate struct FfiConverterSequenceTypeRecentEmoji: FfiConverterRustBuffer {
 #if swift(>=5.8)
 @_documentation(visibility: private)
 #endif
+fileprivate struct FfiConverterSequenceTypeRequiredState: FfiConverterRustBuffer {
+    typealias SwiftType = [RequiredState]
+
+    public static func write(_ value: [RequiredState], into buf: inout [UInt8]) {
+        let len = Int32(value.count)
+        writeInt(&buf, len)
+        for item in value {
+            FfiConverterTypeRequiredState.write(item, into: &buf)
+        }
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> [RequiredState] {
+        let len: Int32 = try readInt(&buf)
+        var seq = [RequiredState]()
+        seq.reserveCapacity(Int(len))
+        for _ in 0 ..< len {
+            seq.append(try FfiConverterTypeRequiredState.read(from: &buf))
+        }
+        return seq
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
 fileprivate struct FfiConverterSequenceTypeRoomDescription: FfiConverterRustBuffer {
     typealias SwiftType = [RoomDescription]
 
@@ -52235,6 +52342,9 @@ private let initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_matrix_sdk_ffi_checksum_method_syncservicebuilder_with_offline_mode() != 48885) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_matrix_sdk_ffi_checksum_method_syncservicebuilder_with_required_state() != 583) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_matrix_sdk_ffi_checksum_method_syncservicebuilder_with_share_pos() != 21315) {
